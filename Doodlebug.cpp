@@ -29,9 +29,8 @@ class Organism{
     void new_location(Location newLoc);
     void i_lived_bitch();
     int random_selector(int options);
-    virtual void move(World& board);
-    virtual void breed(World& board);
-    virtual void day_in_the_life(World& board);
+    virtual Location move(World& board);
+    virtual Location breed(World& board);
     friend ostream& operator <<(ostream& outs, const Organism& organism);
     private:
     Location location;
@@ -44,9 +43,8 @@ class Ant:public Organism{
     public:
     Ant(Location spawn, int lifespan);
     Ant(Location spawn);
-    virtual void move(World& board);
-    virtual void breed(World& board);
-    virtual void day_in_the_life(World& board);
+    virtual Location move(World& board) override;
+    virtual Location breed(World& board) override;
     private:
 };
 
@@ -55,9 +53,8 @@ class Doodlebug:public Organism{
     Doodlebug(Location spawn, int lifespan);
     Doodlebug(Location spawn);
     Doodlebug();
-    virtual void move(World& board);
-    virtual void breed(World& board);
-    virtual void day_in_the_life(World& board);
+    virtual Location move(World& board) override;
+    virtual Location breed(World& board) override;
     bool ant_hunt(World& board);
     void death(World& board);
     private:
@@ -72,7 +69,8 @@ class World{
     vector<Location> adjacent_ants(const Location& curr_pos);
     char get_content(Organism organism);
     void write_content(Location position, Organism& organism);
-    void swap(Location &current_local, Location &new_local);
+    void write_content(Location position, char dude);
+ //   void swap(Location current_local, Location new_local);
     void execution(Organism& victim);
     void execution(Location& target);
     void print(ostream& outs) const;
@@ -95,13 +93,18 @@ int main( )
     
     cout << endl << "this is our initial board." << endl;
 
-   while (true)
+            cout << "press enter to continue";
+        cin.get();
+        board.simulate_time();
+        board.print(cout);
+
+   /* while (true)
     {
-     cout << "press enter to continue";
-     cin.get();
-       board.simulate_time();
-       board.print(cout);
-    }
+        cout << "press enter to continue";
+        cin.get();
+        board.simulate_time();
+        board.print(cout);
+    }*/
     return 0;
 }
 Organism::Organism(Location local, int lifespan, char name):location(local), name(name), lifespan(lifespan){}
@@ -153,58 +156,36 @@ ostream& operator <<(ostream& outs, const Organism& organism) {
     return outs;
 }
 
-void Organism::move(World& board) {}
-void Organism::breed(World& board) {}
-void Organism::day_in_the_life(World& board) {}
+Location Organism::move(World& board) {return{22, 22};}
+Location Organism::breed(World& board) {return{22, 22};}
 
 Ant::Ant(Location spawn, int lifespan):Organism(spawn, lifespan, ANT_NAME) {}
 
 Ant::Ant(Location spawn):Organism(spawn, ANT_NAME) {}
 
-void Ant::move(World& board)
+Location Ant::move(World& board)
 {
-   
-    // Get available adjacent cells
     vector<Location> options = board.available_adj_cells(get_location());
-    
-    // If there are no available cells, return
     if (options.empty())
-        return;
-
-    // Select a random direction
+        return {22, 22};
     int direction = random_selector(options.size());
     Location next = options[direction];
-
-    Organism kill({1,1}, '-');
-    // Clear the current location on the board
-    board.write_content(get_location(), kill);
-
-    // Update the location of the organism
-    new_location(next);
-
-    // Place the organism in its new location on the board
-    board.write_content(next, *this);
+    return next;
 }
 
-void Ant::breed(World& board)
+Location Ant::breed(World& board)
 {
     if ((get_lifespan()%3) == 0)
     {
         vector<Location> options = board.available_adj_cells(get_location());
         if (options.size() < 1)
-            return;
+            return get_location();
         int direction = random_selector(options.size());
         Location next = options[direction];
-        Ant new_bug(next);
-        board.write_content(next, new_bug);
+        return next;
     }
-}
-
-void Ant::day_in_the_life(World& board)
-{
-    move(board);
-    i_lived_bitch();
-    breed(board);
+    else
+        return {22, 22};
 }
 
 Doodlebug::Doodlebug(Location spawn, int lifespan):Organism(spawn, lifespan, DOODLEBUG_NAME), hunger(0) {}
@@ -221,72 +202,42 @@ bool Doodlebug::ant_hunt(World& board)
        }
     int direction = random_selector(options.size());
     Location current = this->get_location();
-    board.execution(options[direction]);
-    board.swap(current, options[direction]);
+    board.execution(current);
+    board.write_content(options[direction], 'x');
     return true;
 }
 
-void Doodlebug::move(World& board)
+Location Doodlebug::move (World& board)
 {
-    // Get available adjacent cells
     vector<Location> options = board.available_adj_cells(get_location());
-    
-    // If there are no available cells, return
     if (options.empty())
-        return;
-
-    // Select a random direction
+        return {22, 22};
     int direction = random_selector(options.size());
     Location next = options[direction]; 
-
-    Organism kill({1,1}, '-');
-
-    // Clear the current location on the board
-    board.write_content(get_location(), kill);
-
-    // Update the location of the organism
-    new_location(next);
-
-    // Place the organism in its new location on the board
-    board.write_content(next, *this);
+    return next;
 }
 
-void Doodlebug::breed(World& board)
+Location Doodlebug::breed(World& board)
 {
     if (get_lifespan() % 8 == 0)
     {
         vector<Location> options = board.available_adj_cells(get_location());
         if (options.size() < 1)
-            return;
+            return get_location();
         int direction = random_selector(options.size());
-        Doodlebug new_bug;
-        board.write_content(options[direction], new_bug);
+        Location next = options[direction]; 
+        return next;
     }
+    else
+        return {22, 22};
 }
 
-void Doodlebug::death(World& board){
+void Doodlebug::death(World& board){ //needs fix
     Location here = get_location();
     if (hunger >= 3)
         board.execution(*this);
     else
         return;
-}
-
-void Doodlebug::day_in_the_life(World& board)
-{
-    bool eating_time = ant_hunt(board);
-    if (eating_time == false)
-    {   
-        hunger++;
-        move(board);
-    }
-    else
-    {
-        hunger = 0;
-    }
-    death(board);
-    i_lived_bitch();
-    breed(board);
 }
 
 World::World() : board(ROWS, vector<Organism>(COLUMNS))
@@ -310,22 +261,18 @@ bool World::is_open_space(const Location& position)
         return true;
     }
     else
-    {
         return false;
-    }
 }
 
 vector<Location> World::available_adj_cells(const Location& curr_pos)
 {
     vector<Location> available_adj_cells;
     vector<Location> unvetted_list = {{curr_pos.xValue + 1, curr_pos.yValue}, {curr_pos.xValue, curr_pos.yValue + 1}, {curr_pos.xValue - 1, curr_pos.yValue}, {curr_pos.xValue, curr_pos.yValue-1}};
-
     for (Location local: unvetted_list){
         if (is_open_space(local)){
             available_adj_cells.push_back(local);
     }
     }
-
     return available_adj_cells;
 }
 
@@ -343,7 +290,6 @@ vector<Location> World::adjacent_ants(const Location& curr_pos)
                 available_adj_cells.push_back(local);
                 }
             }
-    
     }
     }
 
@@ -358,18 +304,22 @@ char World::get_content(Organism organism)
 void World::write_content(Location position, Organism& organism)
 {
     Organism newlife(position, organism.get_name());
-    board[position.yValue][position.xValue] = newlife;
+    board[position.xValue][position.yValue] = newlife;
     return;
 }
 
-void World::swap(Location& current_local, Location& new_local)
+void World::write_content(Location position, char dude)
 {
-    // Move the organism from the current location to the new location
-    board[new_local.yValue][new_local.xValue] = board[current_local.yValue][current_local.xValue];
-
-    // Clear the current location on the board
-    board[current_local.yValue][current_local.xValue] = Organism();
+    Organism newlife(position, dude);
+    board[position.xValue][position.yValue] = newlife;
+    return;
 }
+
+//void World::swap(Location current_local, Location new_local)
+//{
+   // board[new_local.xValue][new_local.yValue] = board[current_local.xValue][current_local.yValue];
+  //  board[current_local.xValue][current_local.yValue] = Organism(current_local);
+//}
 
 void World::execution(Organism &victim)
 {
@@ -430,26 +380,36 @@ void World::print(ostream& outs) const {
 }
 
 void World::simulate_time() {
-    vector<vector<Organism>> temp_board = board;
+    vector<Doodlebug*>  doodles;
+    vector<Ant*> ants;
+    Location null = {22, 22};
+
     for (int i = 0; i < ROWS; i++) {
         for (int j = 0; j < COLUMNS; j++) {
             if (board[i][j].get_name() == DOODLEBUG_NAME) {
-                Doodlebug doodle({i, j}, board[i][j].get_lifespan());
-                doodle.day_in_the_life(*this); 
-                temp_board[i][j] = doodle; 
+                doodles.push_back(static_cast<Doodlebug*>(&board[i][j])); 
             }
-        }
-    }
-
-    for (int i = 0; i < ROWS; i++) {
-        for (int j = 0; j < COLUMNS; j++) {
             if (board[i][j].get_name() == ANT_NAME) {
-                Ant ant({i, j}, board[i][j].get_lifespan()); 
-                ant.day_in_the_life(*this); 
-                temp_board[i][j] = ant; 
-            }
+                ants.push_back(static_cast<Ant*>(&board[i][j]));
+            }            
         }
     }
 
-    board = temp_board;
+    for (Ant* ant_ptr: ants) {
+        cout << ant_ptr->move(*this).xValue;
+        if (ant_ptr->move(*this).xValue != null.xValue)
+            {write_content(ant_ptr->move(*this), 'o');
+            cout<< "I work";
+            }
+        if (ant_ptr->breed(*this).xValue != null.xValue)
+            write_content(ant_ptr->breed(*this), 'o');
+    }
+
+    for (Doodlebug* doodlebug_ptr: doodles) {
+        if (doodlebug_ptr->move(*this).xValue != null.xValue)
+            write_content(doodlebug_ptr->move(*this), 'o');
+        if (doodlebug_ptr->move(*this).xValue != null.xValue)
+            write_content(doodlebug_ptr->breed(*this), 'o');
+    }
 }
+
